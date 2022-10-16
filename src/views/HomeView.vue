@@ -15,13 +15,17 @@
         <router-link :to="{ name: 'recipe', params: { slug: recipe.slug } }">
           <button>View Recipe</button>
         </router-link>
+        <button style="margin-left: 30px" @click="edit(recipe)">Edit</button>
+        <button style="margin-left: 30px" @click="deleteRecipe(recipe)">
+          Delete
+        </button>
       </div>
     </div>
 
     <!-- Popup -->
     <div class="add-recipe-popup" v-if="popupOpen">
       <div class="popup-content">
-        <h2>Add new Recipe</h2>
+        <h2>{{ onEdit ? "Edit" : "Add New" }} Recipe</h2>
         <form @submit.prevent="addNewRecipe">
           <div class="group">
             <label>Title</label>
@@ -37,10 +41,15 @@
             <label>Ingredients</label>
             <div
               class="ingredient"
-              v-for="i in newRecipe.ingredientRows"
-              :key="i"
+              v-for="(item, idx) in newRecipe.ingredients"
+              :key="idx"
             >
-              <input type="text" v-model="newRecipe.ingredients[i - 1]" />
+              <input
+                required
+                type="text"
+                v-model="newRecipe.ingredients[idx]"
+              />
+              <span class="removeIcon" @click="removeIngredient(idx)">x</span>
             </div>
             <button type="button" @click="addNewIngredient">
               Add Ingredient
@@ -49,13 +58,20 @@
 
           <div class="group">
             <label>Method</label>
-            <div class="ingredient" v-for="i in newRecipe.methodRows" :key="i">
-              <textarea v-model="newRecipe.method[i - 1]"></textarea>
+            <div
+              class="ingredient"
+              v-for="(item, idx) in newRecipe.method"
+              :key="idx"
+            >
+              <textarea required v-model="newRecipe.method[idx]"></textarea>
+              <span class="removeIcon" @click="removeStep(idx)">x</span>
             </div>
             <button type="button" @click="addNewStep">Add Step</button>
           </div>
 
-          <button type="submit">Add Recipe</button>
+          <button type="submit">
+            {{ onEdit ? "Edit" : "Add New" }} Recipe
+          </button>
           <button @click="togglePopup" type="button">Close</button>
         </form>
       </div>
@@ -72,14 +88,14 @@ export default {
   components: {},
   setup() {
     const newRecipe = ref({
+      id: 0,
       title: "",
       description: "",
-      ingredients: [],
-      method: [],
-      ingredientRows: 1,
-      methodRows: 1,
+      ingredients: [""],
+      method: [""],
     });
     const popupOpen = ref(false);
+    const onEdit = ref(false);
     const store = useStore();
 
     const togglePopup = () => {
@@ -87,11 +103,39 @@ export default {
     };
 
     const addNewIngredient = () => {
-      newRecipe.value.ingredientRows++;
+      newRecipe.value.ingredients.push("");
+    };
+
+    const removeIngredient = (idx) => {
+      if (newRecipe.value.ingredients.length > 1) {
+        newRecipe.value.ingredients.splice(idx, 1);
+      }
+    };
+
+    const removeStep = (idx) => {
+      if (newRecipe.value.method.length > 1) {
+        newRecipe.value.method.splice(idx, 1);
+      }
     };
 
     const addNewStep = () => {
-      newRecipe.value.methodRows++;
+      newRecipe.value.method.push("");
+    };
+
+    const edit = (recipe) => {
+      newRecipe.value = {
+        id: recipe.id,
+        title: recipe.title,
+        description: recipe.description,
+        ingredients: recipe.ingredients,
+        method: recipe.method,
+      };
+      onEdit.value = true;
+      togglePopup();
+    };
+
+    const deleteRecipe = (recipe) => {
+      store.commit("DELETE_RECIPE", recipe);
     };
 
     const addNewRecipe = () => {
@@ -104,15 +148,19 @@ export default {
         return;
       }
 
-      store.commit("ADD_RECIPE", { ...newRecipe.value });
+      if (onEdit.value) {
+        store.commit("UPDATE_RECIPE", { ...newRecipe.value });
+        onEdit.value = false;
+      } else {
+        store.commit("ADD_RECIPE", { ...newRecipe.value });
+      }
 
       newRecipe.value = {
+        id: 0,
         title: "",
         description: "",
-        ingredients: [],
-        method: [],
-        ingredientRows: 1,
-        methodRows: 1,
+        ingredients: [""],
+        method: [""],
       };
 
       togglePopup();
@@ -120,11 +168,16 @@ export default {
 
     return {
       newRecipe,
+      removeStep,
       popupOpen,
+      edit,
+      deleteRecipe,
+      removeIngredient,
       togglePopup,
       addNewIngredient,
       addNewStep,
       addNewRecipe,
+      onEdit,
     };
   },
 };
@@ -192,6 +245,18 @@ h1 {
   display: block;
   margin-bottom: 0.5rem;
 }
+.ingredient {
+  position: relative;
+}
+.removeIcon {
+  position: absolute;
+  top: 0;
+  right: 10px;
+  font-size: 30px;
+  cursor: pointer;
+  color: black;
+}
+
 .popup-content .group input,
 .popup-content .group textarea {
   display: block;

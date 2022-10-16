@@ -4,6 +4,7 @@ export default createStore({
   state: {
     recipes: [
       {
+        id: 1,
         slug: "katsu-curry",
         title: "Katsu Curry",
         description:
@@ -22,6 +23,7 @@ export default createStore({
         ],
       },
       {
+        id: 2,
         slug: "ramen-noodle-soup",
         title: "Ramen noodle soup",
         description:
@@ -44,7 +46,15 @@ export default createStore({
   getters: {},
   mutations: {
     ADD_RECIPE(state, recipe) {
-      state.recipes.push(recipe);
+      state.recipes.push({ id: state.recipes.length + 1, ...recipe });
+    },
+    UPDATE_RECIPE(state, recipe) {
+      state.recipes = state.recipes.map((r) =>
+        r.id === recipe.id ? recipe : r
+      );
+    },
+    DELETE_RECIPE(state, recipe) {
+      state.recipes = state.recipes.filter((r) => r.id !== recipe.id);
     },
   },
   actions: {},
